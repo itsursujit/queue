@@ -2,7 +2,9 @@ package workers
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/segmentio/ksuid"
+	"log"
 	"time"
 
 	"github.com/go-redis/redis"
@@ -33,6 +35,7 @@ type EnqueueOptions struct {
 
 func NewProducer(options Options) (*Producer, error) {
 	options, err := processOptions(options)
+	fmt.Println(options)
 	if err != nil {
 		return nil, err
 	}
@@ -86,6 +89,7 @@ func (p *Producer) EnqueueWithOptions(queue, class string, args interface{}, opt
 	}
 
 	if now < opts.At {
+		p.opts.persist.EnqueueScheduledMessage(data.At, data)
 		err = p.opts.store.EnqueueScheduledMessage(data.At, string(bytes))
 		return data.Jid, err
 	}
@@ -94,7 +98,10 @@ func (p *Producer) EnqueueWithOptions(queue, class string, args interface{}, opt
 	if err != nil {
 		return "", err
 	}
-
+	err = p.opts.persistentClient.EnqueueMessageNow(queue, data)
+	if err != nil {
+		log.Fatal(err)
+	}
 	err = p.opts.store.EnqueueMessageNow(queue, string(bytes))
 	if err != nil {
 		return "", err

@@ -3,6 +3,7 @@ package workers
 import (
 	"crypto/tls"
 	"errors"
+	"log"
 	"strings"
 	"time"
 
@@ -12,13 +13,14 @@ import (
 
 // Options contains the set of configuration options for a manager and/or producer
 type Options struct {
-	ProcessID    string
-	Namespace    string
-	PollInterval int
-	Database     int
-	Password     string
-	PoolSize     int
-
+	ProcessID      string
+	Namespace      string
+	PollInterval   int
+	Database       int
+	Password       string
+	PoolSize       int
+	PersistentAddr string
+	PersistentDB   string
 	// Provide one of ServerAddr or (SentinelAddrs + RedisMasterName)
 	ServerAddr      string
 	SentinelAddrs   string
@@ -27,9 +29,10 @@ type Options struct {
 
 	// Optional display name used when displaying manager stats
 	ManagerDisplayName string
-
-	client *redis.Client
-	store  storage.Store
+	store              storage.Store
+	client             *redis.Client
+	persistentClient   *MongoInstance
+	persist            Persist
 }
 
 func processOptions(options Options) (Options, error) {
@@ -43,7 +46,18 @@ func processOptions(options Options) (Options, error) {
 		options.PoolSize = 1
 	}
 	redisIdleTimeout := 240 * time.Second
+	if options.PersistentDB == "" {
+		options.PersistentDB = "test_db"
+	}
+	if options.PersistentAddr == "" {
+		options.PersistentAddr = "mongodb://localhost:27017/" + options.PersistentDB
+	}
+	// Connect to the database
+	if err := Connect(options.PersistentAddr, options.PersistentDB); err != nil {
+		log.Fatal(err)
+	}
 
+	options.persistentClient = MG
 	if options.ServerAddr != "" {
 		options.client = redis.NewClient(&redis.Options{
 			IdleTimeout: redisIdleTimeout,

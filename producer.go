@@ -7,8 +7,12 @@ import (
 )
 
 func main() {
+	const dbName = "fiber_test"
+	const mongoURI = "mongodb://localhost:27017/" + dbName
 	// Create a manager, which manages workers
 	producer, err := workers.NewProducer(workers.Options{
+		PersistentAddr: mongoURI,
+		PersistentDB:   dbName,
 		// location of redis instance
 		ServerAddr: "localhost:6379",
 		// instance of the database
