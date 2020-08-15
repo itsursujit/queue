@@ -7,9 +7,6 @@ import (
 
 func myJob(message *workers.Msg) error {
 	fmt.Println(message.Jid())
-	// do something with your message
-	// message.Jid()
-	// message.Args() is a wrapper around go-simplejson (http://godoc.org/github.com/bitly/go-simplejson)
 	return nil
 }
 
@@ -23,16 +20,17 @@ func myMiddleware(queue string, mgr *workers.Manager, next workers.JobFunc) work
 }
 
 func main() {
+	// https://github.com/tsuru/monsterqueue
 	// Create a manager, which manages workers
 	manager, err := workers.NewManager(workers.Options{
 		// location of redis instance
 		ServerAddr: "localhost:6379",
 		// instance of the database
-		Database:   0,
+		Database: 0,
 		// number of connections to keep open with redis
-		PoolSize:   30,
+		PoolSize: 30,
 		// unique process id for this instance of workers (for proper recovery of inprogress jobs on crash)
-		ProcessID:  "1",
+		ProcessID: "1",
 	})
 
 	if err != nil {
@@ -54,31 +52,8 @@ func main() {
 	// this worker will only run myMiddleware
 	manager.AddWorker("myqueue3", 20, myJob, myMiddleware)
 
-	// If you already have a manager and want to enqueue
-	// to the same place:
-	producer := manager.Producer()
-
-	// Alternatively, if you want to create a producer to enqueue messages
-	// producer, err := workers.NewProducer(Options{
-	//   // location of redis instance
-	//   ServerAddr: "localhost:6379",
-	//   // instance of the database
-	//   Database:   0,
-	//   // number of connections to keep open with redis
-	//   PoolSize:   30,
-	//   // unique process id for this instance of workers (for proper recovery of inprogress jobs on crash)
-	//   ProcessID:  "1",
-	// })
-
-	// Add a job to a queue
-	producer.Enqueue("myqueue3", "Add", []int{1, 2})
-
-	// Add a job to a queue with retry
-	producer.EnqueueWithOptions("myqueue3", "Add", []int{1, 2}, workers.EnqueueOptions{Retry: true})
-
-	// stats will be available at http://localhost:8080/stats
-	go workers.StartAPIServer(8080)
-
 	// Blocks until process is told to exit via unix signal
-	manager.Run()
+	go manager.Run()
+	// stats will be available at http://localhost:8080/stats
+	workers.StartAPIServer(8080)
 }
