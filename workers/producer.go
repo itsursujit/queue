@@ -1,10 +1,8 @@
 package workers
 
 import (
-	"crypto/rand"
 	"encoding/json"
-	"fmt"
-	"io"
+	"github.com/segmentio/ksuid"
 	"time"
 
 	"github.com/go-redis/redis"
@@ -119,10 +117,6 @@ func nowToSecondsWithNanoPrecision() float64 {
 
 func generateJid() string {
 	// Return 12 random bytes as 24 character hex
-	b := make([]byte, 12)
-	_, err := io.ReadFull(rand.Reader, b)
-	if err != nil {
-		return ""
-	}
-	return fmt.Sprintf("%x", b)
+	return ksuid.New().String()
+
 }

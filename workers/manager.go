@@ -1,11 +1,11 @@
 package workers
 
 import (
+	"github.com/segmentio/ksuid"
 	"os"
 	"sync"
 
 	"github.com/go-redis/redis"
-	"github.com/google/uuid"
 	"queue/workers/storage"
 )
 
@@ -31,7 +31,7 @@ func NewManager(options Options) (*Manager, error) {
 	}
 
 	return &Manager{
-		uuid: uuid.New().String(),
+		uuid: ksuid.New().String(),
 		opts: options,
 	}, nil
 }
@@ -44,7 +44,7 @@ func NewManagerWithRedisClient(options Options, client *redis.Client) (*Manager,
 	}
 
 	return &Manager{
-		uuid: uuid.New().String(),
+		uuid: ksuid.New().String(),
 		opts: options,
 	}, nil
 }

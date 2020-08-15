@@ -19,7 +19,7 @@ type MongoInstance struct {
 	Db     *mongo.Database
 }
 
-var mg MongoInstance
+var MG MongoInstance
 
 // Database settings (insert your own database name and connection URI)
 const dbName = "fiber_test"
@@ -36,7 +36,7 @@ type Employee struct {
 // Connect configures the MongoDB client and initializes the database connection.
 // Source: https://www.mongodb.com/blog/post/quick-start-golang--mongodb--starting-and-setup
 func Connect() error {
-	if mg.Client != nil {
+	if MG.Client != nil {
 		return nil
 	}
 	client, err := mongo.NewClient(options.Client().ApplyURI(mongoURI))
@@ -51,7 +51,7 @@ func Connect() error {
 		return err
 	}
 
-	mg = MongoInstance{
+	MG = MongoInstance{
 		Client: client,
 		Db:     db,
 	}
@@ -73,7 +73,7 @@ func main() {
 	app.Get("/employee", func(c *fiber.Ctx) {
 		// get all records as a cursor
 		query := bson.D{{}}
-		cursor, err := mg.Db.Collection("employees").Find(c.Fasthttp, query)
+		cursor, err := MG.Db.Collection("employees").Find(c.Fasthttp, query)
 		if err != nil {
 			c.Status(500).Send(err)
 			return
@@ -97,7 +97,7 @@ func main() {
 	// Insert a new employee into MongoDB
 	// Docs: https://docs.mongodb.com/manual/reference/command/insert/
 	app.Post("/employee", func(c *fiber.Ctx) {
-		collection := mg.Db.Collection("employees")
+		collection := MG.Db.Collection("employees")
 
 		// New Employee struct
 		employee := new(Employee)
@@ -162,7 +162,7 @@ func main() {
 				},
 			},
 		}
-		err = mg.Db.Collection("employees").FindOneAndUpdate(c.Fasthttp, query, update).Err()
+		err = MG.Db.Collection("employees").FindOneAndUpdate(c.Fasthttp, query, update).Err()
 
 		if err != nil {
 			// ErrNoDocuments means that the filter did not match any documents in the collection
@@ -197,7 +197,7 @@ func main() {
 
 		// find and delete the employee with the given ID
 		query := bson.D{{Key: "_id", Value: employeeID}}
-		result, err := mg.Db.Collection("employees").DeleteOne(c.Fasthttp, &query)
+		result, err := MG.Db.Collection("employees").DeleteOne(c.Fasthttp, &query)
 
 		if err != nil {
 			c.Status(500).Send()
