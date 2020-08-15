@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/digitalocean/go-workers2/storage"
+	"queue/workers/storage"
 )
 
 //Fetcher is an interface for managing work messages

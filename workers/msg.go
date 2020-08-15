@@ -5,6 +5,22 @@ import (
 	"reflect"
 )
 
+type Task struct {
+	Queue        Queue
+	Payload      Msg
+	Status       string
+	ID           string
+	Tag          []string
+	QueuedAt     int64
+	StartedAt    int64
+	CanceledAt   int64
+	DeletedAt    int64
+	PausedAt     int64
+	ResumeAfter  int64
+	FailedAt     int64
+	FailedReason string
+}
+
 type data struct {
 	*simplejson.Json
 }

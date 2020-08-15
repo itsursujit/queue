@@ -2,38 +2,64 @@ package workers
 
 import (
 	"sync"
+	"time"
 )
 
-type worker struct {
+const (
+	NOT_STARTED = "NOT_STARTED"
+	STARTED     = "STARTED"
+	RUNNING     = "RUNNING"
+	IN_PROGRESS = "IN_PROGRESS"
+	PROCESSING  = "PROCESSING"
+	PAUSED      = "PAUSED"
+	CANCELED    = "CANCELED"
+	EXPIRED     = "EXPIRED"
+	STOPPED     = "STOPPED"
+	FAILED      = "FAILED"
+	COMPLETED   = "COMPLETED"
+)
+
+type Worker struct {
 	queue       string
+	server      string
 	handler     JobFunc
 	concurrency int
 	runners     []*taskRunner
 	runnersLock sync.Mutex
+	throttle    int
+	Status      string
+	Tag         []string
+	StartedAt   time.Time
+	PausedAt    time.Time
+	ResumedAt   time.Time
 	stop        chan bool
+	StoppedAt   time.Time
 	running     bool
 }
 
-func newWorker(queue string, concurrency int, handler JobFunc) *worker {
+func newWorker(queue string, concurrency int, handler JobFunc, tag ...string) *Worker {
 	if concurrency <= 0 {
 		concurrency = 1
 	}
-	w := &worker{
+	w := &Worker{
 		queue:       queue,
 		handler:     handler,
 		concurrency: concurrency,
 		stop:        make(chan bool),
+		Tag:         tag,
 	}
 	return w
 }
 
-func (w *worker) start(fetcher Fetcher) {
+func (w *Worker) start(fetcher Fetcher) {
 	w.runnersLock.Lock()
 	if w.running {
 		w.runnersLock.Unlock()
 		return
 	}
 	w.running = true
+	w.Status = STARTED
+	w.StartedAt = time.Now()
 	defer func() {
 		w.runnersLock.Lock()
 		w.running = false
@@ -50,6 +76,7 @@ func (w *worker) start(fetcher Fetcher) {
 	for i := 0; i < w.concurrency; i++ {
 		r := newTaskRunner(w.handler)
 		w.runners[i] = r
+		w.Status = RUNNING
 		go func() {
 			r.work(fetcher.Messages(), done, fetcher.Ready())
 			wg.Done()
@@ -87,15 +114,17 @@ func (w *worker) start(fetcher Fetcher) {
 	}
 }
 
-func (w *worker) quit() {
+func (w *Worker) quit() {
 	w.runnersLock.Lock()
 	defer w.runnersLock.Unlock()
 	if w.running {
+		w.Status = STOPPED
+		w.StoppedAt = time.Now()
 		w.stop <- true
 	}
 }
 
-func (w *worker) inProgressMessages() []*Msg {
+func (w *Worker) inProgressMessages() []*Msg {
 	w.runnersLock.Lock()
 	defer w.runnersLock.Unlock()
 	var res []*Msg

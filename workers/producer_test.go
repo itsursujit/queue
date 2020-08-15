@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/digitalocean/go-workers2/storage"
 	"github.com/go-redis/redis"
 	"github.com/stretchr/testify/assert"
+	"queue/workers/storage"
 )
 
 func TestProducer_Enqueue(t *testing.T) {

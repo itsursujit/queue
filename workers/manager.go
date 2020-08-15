@@ -4,9 +4,9 @@ import (
 	"os"
 	"sync"
 
-	"github.com/digitalocean/go-workers2/storage"
 	"github.com/go-redis/redis"
 	"github.com/google/uuid"
+	"queue/workers/storage"
 )
 
 // Manager coordinates work, workers, and signaling needed for job processing
@@ -14,7 +14,7 @@ type Manager struct {
 	uuid     string
 	opts     Options
 	schedule *scheduledWorker
-	workers  []*worker
+	workers  []*Worker
 	lock     sync.Mutex
 	signal   chan os.Signal
 	running  bool
