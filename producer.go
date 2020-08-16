@@ -2,13 +2,14 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"github.com/segmentio/ksuid"
 	"go.mongodb.org/mongo-driver/bson"
 	"queue/workers"
 )
 
 func main() {
-	queueId := "1gBWIGxldZVSsYw6qPHLtU7AujV"
+	queueId := "1gBuP7HD6IZxnnaY8MJ2beFdRiv"
 	TestProducer(queueId)
 }
 
@@ -40,8 +41,9 @@ func TestProducer(id string) error {
 		panic(err)
 	}
 	for i := 0; i <= 10; i++ {
-		_, err = producer.Enqueue(queue.Name, "SendEmail", []int{1, 2})
-		_, err = producer.Enqueue(queue.Name, "SendSMS", []int{1, 2})
+		fmt.Println(queue.Name)
+		// _, err = producer.Enqueue(queue.Name, "SendEmail", []int{1, 2})
+		_, err = producer.Enqueue("myqueue:3", "SendSMS", []int{1, 2})
 	}
 	return nil
 }

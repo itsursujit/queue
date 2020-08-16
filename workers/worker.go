@@ -55,6 +55,18 @@ func newWorker(queue string, concurrency int, handler JobFunc, tag ...string) *W
 	return w
 }
 
+func newQueueWorker(queue string, wrk Worker, handler JobFunc, tag ...string) *Worker {
+	if wrk.Concurrency <= 0 {
+		wrk.Concurrency = 1
+	}
+	wrk.handler = handler
+	wrk.queue = queue
+	wrk.stop = make(chan bool)
+	wrk.concurrency = wrk.Concurrency
+
+	return &wrk
+}
+
 func (w *Worker) start(fetcher Fetcher) {
 	w.runnersLock.Lock()
 	if w.running {

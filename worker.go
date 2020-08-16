@@ -8,7 +8,7 @@ import (
 )
 
 func myJob(message *workers.Msg) error {
-	fmt.Println(message.Jid())
+	fmt.Println(message)
 	return nil
 }
 
@@ -38,6 +38,16 @@ func main() {
 		ServerHeader:  "Fiber",
 	})
 	go manager.Run()
+	wrk := workers.Worker{
+		QueueID:     ksuid.New().String(),
+		Server:      "127.0.0.1",
+		Handler:     "SendEmail",
+		Status:      workers.NOT_STARTED,
+		Concurrency: 100,
+		ID:          ksuid.New().String(),
+		Tag:         []string{fmt.Sprintf("%v", 1)},
+	}
+	manager.AddQueueWorker("myqueue:4", wrk, myJob)
 	if err := app.Listen(":8081"); err != nil {
 		println(err)
 	}

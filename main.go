@@ -60,7 +60,22 @@ func main() {
 		queueId := ksuid.New().String()
 		CreateWorkersForQueue(queue, queueId, id)
 		StartWorkersForQueue(queueId)
-		// TestProducer(queueId)
+		if id == 3 {
+			fmt.Println("Stopping...")
+			time.Sleep(5 * time.Second)
+			StopWorkersForQueue(queueId, "127.0.1.1")
+			time.Sleep(5 * time.Second)
+			wrk := workers.Worker{
+				QueueID:     queueId,
+				Server:      "127.0.1.1",
+				Handler:     "SendSMS",
+				Status:      workers.NOT_STARTED,
+				Concurrency: 100,
+				ID:          ksuid.New().String(),
+				Tag:         []string{fmt.Sprintf("%v", id)},
+			}
+			AddWorkerOnQueue(queueId, wrk)
+		}
 	}
 	if err := app.Listen(":8080"); err != nil {
 		println(err)
@@ -138,14 +153,48 @@ func StartWorkersForQueue(id string) error {
 	for _, wrk := range wrkrs {
 		switch wrk.Handler {
 		case "SendEmail":
-			manager.AddWorker(queue.Name, wrk.Concurrency, SendEmail)
+			manager.AddQueueWorker(queue.Name, wrk, SendEmail)
 		case "SendSMS":
-			manager.AddWorker(queue.Name, wrk.Concurrency, SendSMS)
+			manager.AddQueueWorker(queue.Name, wrk, SendSMS)
 		}
 	}
 	managerPool.m.Lock()
 	managerPool.Managers[id] = manager
 	managerPool.m.Unlock()
 	go managerPool.Managers[id].Run()
+	return nil
+}
+
+func StopWorkersForQueue(id string, addr ...string) {
+	wrkSrv := ""
+	if len(addr) > 0 {
+		wrkSrv = addr[0]
+	}
+	if managerPool != nil {
+		if managerPool.Managers[id].IsRunning() {
+			for _, w := range managerPool.Managers[id].GetWorkers() {
+				if w.Server == wrkSrv {
+					managerPool.Managers[id].StopWorker(w.ID)
+				}
+			}
+
+		}
+	}
+}
+
+func AddWorkerOnQueue(id string, wrk workers.Worker) error {
+	var queue workers.Queue
+	query := bson.D{{Key: "ID", Value: id}}
+	record := workers.MG.Db.Collection("queues").FindOne(context.Background(), query)
+	err := record.Decode(&queue)
+	if err != nil {
+		return err
+	}
+	switch wrk.Handler {
+	case "SendEmail":
+		managerPool.Managers[id].AddQueueWorker(queue.Name, wrk, SendEmail)
+	case "SendSMS":
+		managerPool.Managers[id].AddQueueWorker(queue.Name, wrk, SendSMS)
+	}
 	return nil
 }

@@ -69,6 +69,30 @@ func (m *Manager) AddWorker(queue string, concurrency int, job JobFunc, mids ...
 	m.workers = append(m.workers, newWorker(queue, concurrency, job))
 }
 
+// AddWorker adds a new job processing worker
+func (m *Manager) GetWorkers() []*Worker {
+	return m.workers
+}
+
+// AddWorker adds a new job processing worker
+func (m *Manager) IsRunning() bool {
+	return m.running
+}
+
+// AddWorker adds a new job processing worker
+func (m *Manager) AddQueueWorker(queue string, wrk Worker, job JobFunc, mids ...MiddlewareFunc) {
+	m.lock.Lock()
+	defer m.lock.Unlock()
+
+	middlewareQueueName := m.opts.Namespace + queue
+	if len(mids) == 0 {
+		job = DefaultMiddlewares().build(middlewareQueueName, m, job)
+	} else {
+		job = NewMiddlewares(mids...).build(middlewareQueueName, m, job)
+	}
+	m.workers = append(m.workers, newQueueWorker(queue, wrk, job))
+}
+
 // AddBeforeStartHooks adds functions to be executed before the manager starts
 func (m *Manager) AddBeforeStartHooks(hooks ...func()) {
 	m.lock.Lock()
@@ -91,7 +115,7 @@ func (m *Manager) Run() {
 		return // Can't start if we're already running!
 	}
 	m.running = true
-	fmt.Println(fmt.Sprintf("Workers running under process id %s", m.uuid))
+
 	for _, h := range m.beforeStartHooks {
 		h()
 	}
@@ -111,6 +135,7 @@ func (m *Manager) Run() {
 	for i := range m.workers {
 		w := m.workers[i]
 		go func() {
+			fmt.Println(fmt.Sprintf("Worker with ID %s is running for Queue %s on Server %s", w.ID, w.queue, w.Server))
 			w.start(newSimpleFetcher(w.queue, m.opts))
 			wg.Done()
 		}()
@@ -140,6 +165,7 @@ func (m *Manager) Stop() {
 		return
 	}
 	for _, w := range m.workers {
+		fmt.Println(fmt.Sprintf("Worker with ID %s is stopping for Queue %s on Server %s", w.ID, w.queue, w.Server))
 		w.quit()
 	}
 	m.schedule.quit()
@@ -147,6 +173,26 @@ func (m *Manager) Stop() {
 		h()
 	}
 	m.stopSignalHandler()
+}
+
+func (m *Manager) Restart() {
+	m.Stop()
+	m.Run()
+}
+
+// Stop all workers under this Manager and returns immediately.
+func (m *Manager) StopWorker(id string) {
+	m.lock.Lock()
+	defer m.lock.Unlock()
+	if !m.running {
+		return
+	}
+	for _, w := range m.workers {
+		if w.ID == id {
+			fmt.Println(fmt.Sprintf("Worker with ID %s is stopping for Queue %s on Server %s", w.ID, w.queue, w.Server))
+			w.quit()
+		}
+	}
 }
 
 func (m *Manager) inProgressMessages() map[string][]*Msg {
