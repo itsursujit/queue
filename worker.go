@@ -37,7 +37,6 @@ func main() {
 	if err != nil {
 		fmt.Println(err)
 	}
-
 	manager.AddWorker("myqueue3", 20, myJob, myMiddleware)
 	// Blocks until process is told to exit via unix signal
 	manager.Run()
