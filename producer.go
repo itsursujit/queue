@@ -1,15 +1,28 @@
 package main
 
 import (
-	"fmt"
+	"context"
 	"github.com/segmentio/ksuid"
+	"go.mongodb.org/mongo-driver/bson"
 	"queue/workers"
 )
 
-const dbName = "fiber_test"
-const mongoURI = "mongodb://localhost:27017/" + dbName
-
 func main() {
+	queueId := "1gBOpfctZ7FGTAtjlWORBgkcZvw"
+	TestProducer(queueId)
+}
+
+func TestProducer(id string) error {
+	const dbName = "fiber_test"
+	const mongoURI = "mongodb://localhost:27017/" + dbName
+	workers.Connect(mongoURI, dbName)
+	var queue workers.Queue
+	query := bson.D{{Key: "ID", Value: id}}
+	record := workers.MG.Db.Collection("queues").FindOne(context.Background(), query)
+	err := record.Decode(&queue)
+	if err != nil {
+		return err
+	}
 	// Create a manager, which manages workers
 	producer, err := workers.NewProducer(workers.Options{
 		PersistentAddr: mongoURI,
@@ -23,13 +36,11 @@ func main() {
 		// unique process id for this instance of workers (for proper recovery of inprogress jobs on crash)
 		ProcessID: ksuid.New().String(),
 	})
-
 	if err != nil {
-		fmt.Println(err)
+		panic(err)
 	}
 	for i := 0; i <= 10; i++ {
-		// Add a job to a queue
-		producer.Enqueue("myqueue:3", "Add", []int{1, 2})
+		_, err = producer.Enqueue(queue.Name, "SendEmail", []int{1, 2})
 	}
-
+	return nil
 }

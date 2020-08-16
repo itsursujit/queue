@@ -87,7 +87,6 @@ func (p *Producer) EnqueueWithOptions(queue, class string, args interface{}, opt
 	}
 
 	if now < opts.At {
-		p.opts.persistentClient.EnqueueScheduledMessage(data.At, data)
 		err = p.opts.store.EnqueueScheduledMessage(data.At, string(bytes))
 		return data.Jid, err
 	}
@@ -96,7 +95,7 @@ func (p *Producer) EnqueueWithOptions(queue, class string, args interface{}, opt
 	if err != nil {
 		return "", err
 	}
-	err = p.opts.persistentClient.EnqueueMessageNow(queue, data)
+
 	if err != nil {
 		log.Fatal(err)
 	}

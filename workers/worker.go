@@ -21,6 +21,7 @@ const (
 
 type Worker struct {
 	QueueID     string
+	ID          string
 	queue       string
 	Server      string
 	Handler     string
