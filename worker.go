@@ -38,21 +38,8 @@ func main() {
 		fmt.Println(err)
 	}
 
-	// create a middleware chain with the default middlewares, and append myMiddleware
-	mids := workers.DefaultMiddlewares().Append(myMiddleware)
-
-	// pull messages from "myqueue" with concurrency of 10
-	// this worker will not run myMiddleware, but will run the default middlewares
-	manager.AddWorker("myqueue", 10, myJob)
-
-	// pull messages from "myqueue2" with concurrency of 20
-	// this worker will run the default middlewares and myMiddleware
-	manager.AddWorker("myqueue2", 20, myJob, mids...)
-
-	// pull messages from "myqueue3" with concurrency of 20
-	// this worker will only run myMiddleware
 	manager.AddWorker("myqueue3", 20, myJob, myMiddleware)
-
+	fmt.Println(12)
 	// Blocks until process is told to exit via unix signal
 	manager.Run()
 	// stats will be available at http://localhost:8080/stats

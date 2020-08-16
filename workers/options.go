@@ -32,7 +32,6 @@ type Options struct {
 	store              storage.Store
 	client             *redis.Client
 	persistentClient   *MongoInstance
-	persist            Persist
 }
 
 func processOptions(options Options) (Options, error) {

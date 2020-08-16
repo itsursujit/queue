@@ -26,7 +26,7 @@ func main() {
 	if err != nil {
 		fmt.Println(err)
 	}
-	for i := 0; i <= 100000; i++ {
+	for i := 0; i <= 10; i++ {
 		// Add a job to a queue
 		producer.Enqueue("myqueue3", "Add", []int{1, 2})
 	}

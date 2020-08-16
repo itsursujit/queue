@@ -2,7 +2,6 @@ package workers
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/segmentio/ksuid"
 	"log"
 	"time"
@@ -35,7 +34,6 @@ type EnqueueOptions struct {
 
 func NewProducer(options Options) (*Producer, error) {
 	options, err := processOptions(options)
-	fmt.Println(options)
 	if err != nil {
 		return nil, err
 	}
@@ -89,7 +87,7 @@ func (p *Producer) EnqueueWithOptions(queue, class string, args interface{}, opt
 	}
 
 	if now < opts.At {
-		p.opts.persist.EnqueueScheduledMessage(data.At, data)
+		p.opts.persistentClient.EnqueueScheduledMessage(data.At, data)
 		err = p.opts.store.EnqueueScheduledMessage(data.At, string(bytes))
 		return data.Jid, err
 	}
