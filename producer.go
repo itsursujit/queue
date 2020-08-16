@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	queueId := "1gBOpfctZ7FGTAtjlWORBgkcZvw"
+	queueId := "1gBWIGxldZVSsYw6qPHLtU7AujV"
 	TestProducer(queueId)
 }
 
@@ -41,6 +41,7 @@ func TestProducer(id string) error {
 	}
 	for i := 0; i <= 10; i++ {
 		_, err = producer.Enqueue(queue.Name, "SendEmail", []int{1, 2})
+		_, err = producer.Enqueue(queue.Name, "SendSMS", []int{1, 2})
 	}
 	return nil
 }

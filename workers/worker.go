@@ -20,24 +20,24 @@ const (
 )
 
 type Worker struct {
-	QueueID     string
-	ID          string
+	QueueID     string `json:"QueueID" bson:"QueueID"`
+	ID          string `json:"ID" bson:"ID"`
 	queue       string
-	Server      string
-	Handler     string
+	Server      string `json:"Server" bson:"Server"`
+	Handler     string `json:"Handler" bson:"Handler"`
 	handler     JobFunc
-	Concurrency int
+	Concurrency int `json:"Concurrency" bson:"Concurrency"`
 	concurrency int
 	runners     []*taskRunner
 	runnersLock sync.Mutex
 	throttle    int
-	Status      string
-	Tag         []string
-	StartedAt   time.Time
-	PausedAt    time.Time
-	ResumedAt   time.Time
+	Status      string    `json:"Status" bson:"Status"`
+	Tag         []string  `json:"Tag" bson:"Tag"`
+	StartedAt   time.Time `json:"StartedAt" bson:"StartedAt"`
+	PausedAt    time.Time `json:"PausedAt" bson:"PausedAt"`
+	ResumedAt   time.Time `json:"ResumedAt" bson:"ResumedAt"`
 	stop        chan bool
-	StoppedAt   time.Time
+	StoppedAt   time.Time `json:"StoppedAt" bson:"StoppedAt"`
 	running     bool
 }
 

@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/gofiber/fiber"
 	"github.com/segmentio/ksuid"
 	"queue/workers"
 )
@@ -9,15 +10,6 @@ import (
 func myJob(message *workers.Msg) error {
 	fmt.Println(message.Jid())
 	return nil
-}
-
-func myMiddleware(queue string, mgr *workers.Manager, next workers.JobFunc) workers.JobFunc {
-	return func(message *workers.Msg) (err error) {
-		// do something before each message is processed
-		err = next(message)
-		// do something after each message is processed
-		return
-	}
 }
 
 func main() {
@@ -37,9 +29,18 @@ func main() {
 	if err != nil {
 		fmt.Println(err)
 	}
-	manager.AddWorker("myqueue:3", 20, myJob, myMiddleware)
+	manager.AddWorker("myqueue:3", 20, myJob)
 	// Blocks until process is told to exit via unix signal
-	manager.Run()
+
+	app := fiber.New(&fiber.Settings{
+		CaseSensitive: true,
+		StrictRouting: true,
+		ServerHeader:  "Fiber",
+	})
+	go manager.Run()
+	if err := app.Listen(":8081"); err != nil {
+		println(err)
+	}
 	// stats will be available at http://localhost:8080/stats
 	// workers.StartAPIServer(8080)
 }

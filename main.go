@@ -23,12 +23,22 @@ type QueueWorker struct {
 }
 
 func SendEmail(message *workers.Msg) error {
-	fmt.Println("I'm email sending")
+	fmt.Println("I'm sending Email")
 	return nil
 }
+
 func SendSMS(message *workers.Msg) error {
 	fmt.Println("I'm sms sending")
 	return nil
+}
+
+func myMiddleware(queue string, mgr *workers.Manager, next workers.JobFunc) workers.JobFunc {
+	return func(message *workers.Msg) (err error) {
+		// do something before each message is processed
+		err = next(message)
+		// do something after each message is processed
+		return
+	}
 }
 
 var managerPool *ManagerPool
@@ -57,45 +67,6 @@ func main() {
 	}
 }
 
-func TestProducer(id string) error {
-	var queue workers.Queue
-	query := bson.D{{Key: "ID", Value: id}}
-	record := workers.MG.Db.Collection("queues").FindOne(context.Background(), query)
-	err := record.Decode(&queue)
-	if err != nil {
-		return err
-	}
-	// Create a manager, which manages workers
-	producer, err := workers.NewProducer(workers.Options{
-		PersistentAddr: mongoURI,
-		PersistentDB:   dbName,
-		// location of redis instance
-		ServerAddr: "localhost:6379",
-		// instance of the database
-		Database: 0,
-		// number of connections to keep open with redis
-		PoolSize: 30,
-		// unique process id for this instance of workers (for proper recovery of inprogress jobs on crash)
-		ProcessID: ksuid.New().String(),
-	})
-
-	if err != nil {
-		fmt.Println(err)
-	}
-	for i := 0; i <= 10; i++ {
-		// Add a job to a queue
-		_, err = producer.Enqueue(queue.Name, "SendEmail", []int{1, 2})
-		if err != nil {
-			panic(err)
-		}
-		_, err = producer.Enqueue(queue.Name, "SendSMS", []int{1, 2})
-		if err != nil {
-			panic(err)
-		}
-	}
-	return nil
-}
-
 func CreateWorkersForQueue(queue string, queueId string, userId int) {
 	que := workers.Queue{
 		Name:        fmt.Sprintf("%s:%v", queue, userId),
@@ -119,7 +90,7 @@ func CreateWorkersForQueue(queue string, queueId string, userId int) {
 	wrk = workers.Worker{
 		QueueID:     queueId,
 		Server:      "127.0.1.1",
-		Handler:     "SendEmail",
+		Handler:     "SendSMS",
 		Status:      workers.NOT_STARTED,
 		Concurrency: 100,
 		ID:          ksuid.New().String(),
@@ -148,7 +119,7 @@ func StartWorkersForQueue(id string) error {
 		ProcessID: ksuid.New().String(),
 	})
 	var queue workers.Queue
-	var wrks []workers.Worker
+	var wrkrs []workers.Worker
 	query := bson.D{{Key: "ID", Value: id}}
 	record := workers.MG.Db.Collection("queues").FindOne(context.Background(), query)
 	err = record.Decode(&queue)
@@ -160,9 +131,11 @@ func StartWorkersForQueue(id string) error {
 	if err != nil {
 		return err
 	}
-	cursor.All(context.Background(), &wrks)
-	for _, wrk := range wrks {
-		managerPool.m.Lock()
+	err = cursor.All(context.Background(), &wrkrs)
+	if err != nil {
+		panic(err)
+	}
+	for _, wrk := range wrkrs {
 		switch wrk.Handler {
 		case "SendEmail":
 			manager.AddWorker(queue.Name, wrk.Concurrency, SendEmail)
@@ -170,7 +143,9 @@ func StartWorkersForQueue(id string) error {
 			manager.AddWorker(queue.Name, wrk.Concurrency, SendSMS)
 		}
 	}
-	managerPool.Managers[queue.ID] = manager
-	go managerPool.Managers[queue.ID].Run()
+	managerPool.m.Lock()
+	managerPool.Managers[id] = manager
+	managerPool.m.Unlock()
+	go managerPool.Managers[id].Run()
 	return nil
 }
