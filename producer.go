@@ -6,9 +6,10 @@ import (
 	"queue/workers"
 )
 
+const dbName = "fiber_test"
+const mongoURI = "mongodb://localhost:27017/" + dbName
+
 func main() {
-	const dbName = "fiber_test"
-	const mongoURI = "mongodb://localhost:27017/" + dbName
 	// Create a manager, which manages workers
 	producer, err := workers.NewProducer(workers.Options{
 		PersistentAddr: mongoURI,
@@ -28,7 +29,7 @@ func main() {
 	}
 	for i := 0; i <= 10; i++ {
 		// Add a job to a queue
-		producer.Enqueue("myqueue3", "Add", []int{1, 2})
+		producer.Enqueue("myqueue:3", "Add", []int{1, 2})
 	}
 
 }

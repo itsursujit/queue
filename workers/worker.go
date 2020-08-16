@@ -20,9 +20,12 @@ const (
 )
 
 type Worker struct {
+	QueueID     string
 	queue       string
-	server      string
+	Server      string
+	Handler     string
 	handler     JobFunc
+	Concurrency int
 	concurrency int
 	runners     []*taskRunner
 	runnersLock sync.Mutex

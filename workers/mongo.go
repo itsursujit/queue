@@ -42,9 +42,8 @@ func Connect(mongoURI string, dbName string) error {
 	}
 
 	MG = &MongoInstance{
-		Client:         client,
-		Db:             db,
-		CollectionName: "jobs",
+		Client: client,
+		Db:     db,
 	}
 
 	return nil

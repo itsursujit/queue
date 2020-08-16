@@ -1,6 +1,7 @@
 package workers
 
 import (
+	"fmt"
 	"github.com/segmentio/ksuid"
 	"os"
 	"sync"
@@ -90,12 +91,12 @@ func (m *Manager) Run() {
 		return // Can't start if we're already running!
 	}
 	m.running = true
-
+	fmt.Println(fmt.Sprintf("Workers running under process id %s", m.uuid))
 	for _, h := range m.beforeStartHooks {
 		h()
 	}
 
-	globalApiServer.registerManager(m)
+	// globalApiServer.registerManager(m)
 
 	var wg sync.WaitGroup
 
@@ -127,7 +128,7 @@ func (m *Manager) Run() {
 	wg.Wait()
 	// Regain the lock
 	m.lock.Lock()
-	globalApiServer.deregisterManager(m)
+	// globalApiServer.deregisterManager(m)
 	m.running = false
 }
 
