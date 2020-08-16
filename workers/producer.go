@@ -18,18 +18,18 @@ type Producer struct {
 }
 
 type EnqueueData struct {
-	Queue      string      `json:"queue,omitempty"`
-	Class      string      `json:"class"`
-	Args       interface{} `json:"args"`
-	Jid        string      `json:"jid"`
-	EnqueuedAt float64     `json:"enqueued_at"`
+	Queue      string      `json:"queue,omitempty" bson:"queue,omitempty"`
+	Class      string      `json:"class" bson:"class"`
+	Args       interface{} `json:"args" bson:"args"`
+	Jid        string      `json:"jid" bson:"jid"`
+	EnqueuedAt float64     `json:"enqueued_at" bson:"enqueued_at"`
 	EnqueueOptions
 }
 
 type EnqueueOptions struct {
-	RetryCount int     `json:"retry_count,omitempty"`
-	Retry      bool    `json:"retry,omitempty"`
-	At         float64 `json:"at,omitempty"`
+	RetryCount int     `json:"retry_count,omitempty" bson:"retry_count,omitempty"`
+	Retry      bool    `json:"retry,omitempty" bson:"retry,omitempty"`
+	At         float64 `json:"at,omitempty" bson:"at,omitempty"`
 }
 
 func NewProducer(options Options) (*Producer, error) {

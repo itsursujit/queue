@@ -39,7 +39,6 @@ func main() {
 	}
 
 	manager.AddWorker("myqueue3", 20, myJob, myMiddleware)
-	fmt.Println(12)
 	// Blocks until process is told to exit via unix signal
 	manager.Run()
 	// stats will be available at http://localhost:8080/stats
