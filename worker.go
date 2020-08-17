@@ -12,7 +12,7 @@ func myJob(message *workers.Msg) error {
 	return nil
 }
 
-func main() {
+func main3() {
 	// https://github.com/tsuru/monsterqueue
 	// Create a manager, which manages workers
 	manager, err := workers.NewManager(workers.Options{

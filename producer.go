@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	queueId := "1gBuP7HD6IZxnnaY8MJ2beFdRiv"
+	queueId := "1gEsL06XZBLUli8ji5XLdc0glsW"
 	TestProducer(queueId)
 }
 
@@ -22,7 +22,7 @@ func TestProducer(id string) error {
 	record := workers.MG.Db.Collection("queues").FindOne(context.Background(), query)
 	err := record.Decode(&queue)
 	if err != nil {
-		return err
+		panic(err)
 	}
 	// Create a manager, which manages workers
 	producer, err := workers.NewProducer(workers.Options{
@@ -43,7 +43,7 @@ func TestProducer(id string) error {
 	for i := 0; i <= 10; i++ {
 		fmt.Println(queue.Name)
 		// _, err = producer.Enqueue(queue.Name, "SendEmail", []int{1, 2})
-		_, err = producer.Enqueue("myqueue:3", "SendSMS", []int{1, 2})
+		_, err = producer.Enqueue("Test", "SendSMS", []int{1, 2})
 	}
 	return nil
 }

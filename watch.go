@@ -8,7 +8,7 @@ import (
 	"queue/workers"
 )
 
-func main() {
+func main2() {
 	const dbName = "fiber_test"
 	const mongoURI = "mongodb://localhost:27017/" + dbName + "?replicaSet=replset"
 	if err := workers.Connect(mongoURI, dbName); err != nil {

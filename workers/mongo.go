@@ -20,6 +20,9 @@ type MongoInstance struct {
 
 var MG *MongoInstance
 
+const dbName = "fiber_test"
+const mongoURI = "mongodb://localhost:27017/" + dbName
+
 // Connect configures the MongoDB client and initializes the database connection.
 // Source: https://www.mongodb.com/blog/post/quick-start-golang--mongodb--starting-and-setup
 func Connect(mongoURI string, dbName string) error {

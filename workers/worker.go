@@ -1,6 +1,9 @@
 package workers
 
 import (
+	"context"
+	"fmt"
+	"go.mongodb.org/mongo-driver/bson"
 	"sync"
 	"time"
 )
@@ -33,7 +36,7 @@ type Worker struct {
 	throttle    int
 	Status      string    `json:"Status" bson:"Status"`
 	Tag         []string  `json:"Tag" bson:"Tag"`
-	StartedAt   time.Time `json:"StartedAt" bson:"StartedAt"`
+	StartedAt   int64     `json:"StartedAt" bson:"StartedAt"`
 	PausedAt    time.Time `json:"PausedAt" bson:"PausedAt"`
 	ResumedAt   time.Time `json:"ResumedAt" bson:"ResumedAt"`
 	stop        chan bool
@@ -75,7 +78,7 @@ func (w *Worker) start(fetcher Fetcher) {
 	}
 	w.running = true
 	w.Status = STARTED
-	w.StartedAt = time.Now()
+	w.StartedAt = time.Now().Unix()
 	defer func() {
 		w.runnersLock.Lock()
 		w.running = false
@@ -150,4 +153,37 @@ func (w *Worker) inProgressMessages() []*Msg {
 		}
 	}
 	return res
+}
+
+func (w *Worker) Create() error {
+	if MG == nil {
+		Connect(mongoURI, dbName)
+	}
+	var queue Queue
+	query := bson.D{{Key: "ID", Value: w.QueueID}}
+	record := MG.Db.Collection("queues").FindOne(context.Background(), query)
+	err := record.Decode(&queue)
+	if err != nil {
+		panic(err)
+		return err
+	}
+	w.Status = RUNNING
+	w.StartedAt = time.Now().Unix()
+	wrk := Worker{
+		QueueID:     w.QueueID,
+		ID:          w.ID,
+		Server:      w.Server,
+		handler:     DoWork,
+		Concurrency: w.Concurrency,
+		Status:      RUNNING,
+		StartedAt:   time.Now().Unix(),
+	}
+	MG.Db.Collection("workers").InsertOne(context.Background(), w)
+	ManPool.Managers[w.QueueID].AddQueueWorker(queue.Name, wrk, DoWork)
+	return nil
+}
+
+func DoWork(message *Msg) error {
+	fmt.Println("Hello")
+	return nil
 }

@@ -24,6 +24,13 @@ type Manager struct {
 	duringDrainHooks []func()
 }
 
+type ManagerPool struct {
+	Managers map[string]*Manager
+	m        sync.Mutex
+}
+
+var ManPool *ManagerPool
+
 // NewManager creates a new manager with provide options
 func NewManager(options Options) (*Manager, error) {
 	options, err := processOptions(options)
