@@ -210,6 +210,28 @@ func (m *Manager) Producer() *Producer {
 	return &Producer{opts: m.opts}
 }
 
+// Producer creates a new work producer with configuration identical to the manager
+func (m *Manager) Tune(concurrency int) {
+	m.lock.Lock()
+	defer m.lock.Unlock()
+	for i, _ := range m.workers {
+		m.workers[i].concurrency = concurrency
+		m.workers[i].Concurrency = concurrency
+	}
+}
+
+// Producer creates a new work producer with configuration identical to the manager
+func (m *Manager) TuneWorker(id string, concurrency int) {
+	m.lock.Lock()
+	defer m.lock.Unlock()
+	for i, w := range m.workers {
+		if w.ID == id {
+			m.workers[i].concurrency = concurrency
+			m.workers[i].Concurrency = concurrency
+		}
+	}
+}
+
 // GetStats returns the set of stats for the manager
 func (m *Manager) GetStats() (Stats, error) {
 	stats := Stats{

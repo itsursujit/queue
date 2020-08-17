@@ -22,6 +22,20 @@ type QueueWorker struct {
 	PoolSize uint
 }
 
+var funcMapper = map[string]workers.JobFunc{
+	"SendEmail": SendEmail,
+	"SendSMS":   SendSMS,
+}
+
+func DoWork(message *workers.Msg) error {
+	mp, _ := message.Map()
+	function := mp["class"].(string)
+	err := funcMapper[function](message)
+	if err != nil {
+		panic(err)
+	}
+	return nil
+}
 func SendEmail(message *workers.Msg) error {
 	fmt.Println("I'm sending Email")
 	return nil
@@ -70,11 +84,12 @@ func main() {
 				Server:      "127.0.1.1",
 				Handler:     "SendSMS",
 				Status:      workers.NOT_STARTED,
-				Concurrency: 100,
+				Concurrency: 1,
 				ID:          ksuid.New().String(),
 				Tag:         []string{fmt.Sprintf("%v", id)},
 			}
 			AddWorkerOnQueue(queueId, wrk)
+			TuneWorkerOnQueue(queueId, 1000)
 		}
 	}
 	if err := app.Listen(":8080"); err != nil {
@@ -151,12 +166,7 @@ func StartWorkersForQueue(id string) error {
 		panic(err)
 	}
 	for _, wrk := range wrkrs {
-		switch wrk.Handler {
-		case "SendEmail":
-			manager.AddQueueWorker(queue.Name, wrk, SendEmail)
-		case "SendSMS":
-			manager.AddQueueWorker(queue.Name, wrk, SendSMS)
-		}
+		manager.AddQueueWorker(queue.Name, wrk, DoWork)
 	}
 	managerPool.m.Lock()
 	managerPool.Managers[id] = manager
@@ -190,11 +200,16 @@ func AddWorkerOnQueue(id string, wrk workers.Worker) error {
 	if err != nil {
 		return err
 	}
-	switch wrk.Handler {
-	case "SendEmail":
-		managerPool.Managers[id].AddQueueWorker(queue.Name, wrk, SendEmail)
-	case "SendSMS":
-		managerPool.Managers[id].AddQueueWorker(queue.Name, wrk, SendSMS)
-	}
+	managerPool.Managers[id].AddQueueWorker(queue.Name, wrk, DoWork)
+	return nil
+}
+
+func TuneWorkerOnQueue(id string, concurrency int) error {
+	managerPool.Managers[id].Tune(concurrency)
+	return nil
+}
+
+func TuneWorkerOnQueueById(queueId string, id string, concurrency int) error {
+	managerPool.Managers[queueId].TuneWorker(id, concurrency)
 	return nil
 }
