@@ -17,6 +17,7 @@ type Manager struct {
 	schedule *scheduledWorker
 	workers  []*Worker
 	lock     sync.Mutex
+	wg       sync.WaitGroup
 	signal   chan os.Signal
 	running  bool
 
@@ -129,35 +130,33 @@ func (m *Manager) Run() {
 
 	// globalApiServer.registerManager(m)
 
-	var wg sync.WaitGroup
-
-	wg.Add(1)
+	m.wg.Add(1)
 	m.signal = make(chan os.Signal, 1)
 	go func() {
 		m.handleSignals()
-		wg.Done()
+		m.wg.Done()
 	}()
 
-	wg.Add(len(m.workers))
+	m.wg.Add(len(m.workers))
 	for i := range m.workers {
 		w := m.workers[i]
 		go func() {
 			fmt.Println(fmt.Sprintf("Worker with ID %s is running for Queue %s on Server %s", w.ID, w.queue, w.Server))
 			w.start(newSimpleFetcher(w.queue, m.opts))
-			wg.Done()
+			m.wg.Done()
 		}()
 	}
 	m.schedule = newScheduledWorker(m.opts)
 
-	wg.Add(1)
+	m.wg.Add(1)
 	go func() {
 		m.schedule.run()
-		wg.Done()
+		m.wg.Done()
 	}()
 
 	// Release the lock so that Stop can acquire it
 	m.lock.Unlock()
-	wg.Wait()
+	m.wg.Wait()
 	// Regain the lock
 	m.lock.Lock()
 	// globalApiServer.deregisterManager(m)
@@ -182,9 +181,18 @@ func (m *Manager) Stop() {
 	m.stopSignalHandler()
 }
 
-func (m *Manager) Restart() {
-	m.Stop()
-	m.Run()
+func (m *Manager) AdjustWorker(queue string, w Worker) {
+	m.lock.Lock()
+	defer m.lock.Unlock()
+	if w.queue == "" {
+		w.queue = queue
+	}
+	go func() {
+		m.wg.Add(1)
+		fmt.Println(fmt.Sprintf("Worker with ID %s is running for Queue %s on Server %s", w.ID, w.queue, w.Server))
+		w.start(newSimpleFetcher(w.queue, m.opts))
+		m.wg.Done()
+	}()
 }
 
 // Stop all workers under this Manager and returns immediately.

@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	queueId := "1gEsL06XZBLUli8ji5XLdc0glsW"
+	queueId := "1gGZhWZrglHazFgx9Dx7NCH5WwP"
 	TestProducer(queueId)
 }
 

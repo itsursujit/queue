@@ -2,7 +2,7 @@ package workers
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"go.mongodb.org/mongo-driver/bson"
 	"sync"
 	"time"
@@ -156,13 +156,14 @@ func (w *Worker) inProgressMessages() []*Msg {
 }
 
 func (w *Worker) Create() error {
+	var err error
 	if MG == nil {
 		Connect(mongoURI, dbName)
 	}
 	var queue Queue
 	query := bson.D{{Key: "ID", Value: w.QueueID}}
 	record := MG.Db.Collection("queues").FindOne(context.Background(), query)
-	err := record.Decode(&queue)
+	err = record.Decode(&queue)
 	if err != nil {
 		panic(err)
 		return err
@@ -179,11 +180,32 @@ func (w *Worker) Create() error {
 		StartedAt:   time.Now().Unix(),
 	}
 	MG.Db.Collection("workers").InsertOne(context.Background(), w)
+	if ManPool.Managers[w.QueueID] == nil {
+		err = errors.New("workers for provided queue doesn't exists")
+		return err
+	}
 	ManPool.Managers[w.QueueID].AddQueueWorker(queue.Name, wrk, DoWork)
+	ManPool.Managers[w.QueueID].AdjustWorker(queue.Name, wrk)
+
 	return nil
 }
 
+type Function struct {
+	Map map[string]JobFunc
+}
+
+var FuncMapper = Function{}
+
+func init() {
+	FuncMapper.Map = map[string]JobFunc{}
+}
+
 func DoWork(message *Msg) error {
-	fmt.Println("Hello")
+	mp, _ := message.Map()
+	function := mp["class"].(string)
+	err := FuncMapper.Map[function](message)
+	if err != nil {
+		panic(err)
+	}
 	return nil
 }

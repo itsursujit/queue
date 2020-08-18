@@ -52,10 +52,16 @@ type QueueStats struct {
 
 func (q *Queue) Create(startImmediate bool, doWork JobFunc) {
 	if MG == nil {
-		Connect(mongoURI, dbName)
+		err := Connect(mongoURI, dbName)
+		if err != nil {
+			panic(err)
+		}
 	}
 	q.jobFunc = doWork
-	MG.Db.Collection("queues").InsertOne(context.Background(), q)
+	_, err := MG.Db.Collection("queues").InsertOne(context.Background(), q)
+	if err != nil {
+		panic(err)
+	}
 	if startImmediate {
 		wrk := Worker{
 			QueueID:     q.ID,
@@ -66,14 +72,23 @@ func (q *Queue) Create(startImmediate bool, doWork JobFunc) {
 			ID:          ksuid.New().String(),
 			Tag:         []string{q.Tag},
 		}
-		MG.Db.Collection("workers").InsertOne(context.Background(), wrk)
-		q.StartWorkers()
+		_, err := MG.Db.Collection("workers").InsertOne(context.Background(), wrk)
+		if err != nil {
+			panic(err)
+		}
+		err = q.StartWorkers()
+		if err != nil {
+			panic(err)
+		}
 	}
 }
 
 func (q *Queue) StartWorkers() error {
 	if MG == nil {
-		Connect(mongoURI, dbName)
+		err := Connect(mongoURI, dbName)
+		if err != nil {
+			panic(err)
+		}
 	}
 	managers := make(map[string]*Manager)
 	if ManPool == nil {

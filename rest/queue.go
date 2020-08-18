@@ -19,12 +19,14 @@ func QueueHandlers(app fiber.Router) {
 	queues.Post("/:id/worker/add", AddWorkerToQueue)
 	queues.Post("/:id/worker/remove", RemoveWorkerFromQueue)
 	queues.Post("/:id/worker/tune", TuneWorkerOnQueue)
-	queues.Post("/:id/worker/tune", TuneWorkerOnQueue)
 }
 
 func AddQueue(c *fiber.Ctx) {
 	var q workers.Queue
-	c.BodyParser(&q)
+	err := c.BodyParser(&q)
+	if err != nil {
+		panic(err)
+	}
 	q.ID = ksuid.New().String()
 	if q.MinWorkers == 0 {
 		q.MinWorkers = 1
@@ -44,42 +46,76 @@ func AddQueue(c *fiber.Ctx) {
 		q.StartedAt = time.Now().Unix()
 
 	}
-	q.Create(q.StartImmediately, DoWork)
-	c.JSON(q)
+	q.Create(q.StartImmediately, workers.DoWork)
+	err = c.JSON(q)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func AddWorkerToQueue(c *fiber.Ctx) {
 	queueId := c.Params("id")
 	var w workers.Worker
-	c.BodyParser(&w)
+	err := c.BodyParser(&w)
+	if err != nil {
+		panic(err)
+	}
 	w.ID = ksuid.New().String()
 	w.QueueID = queueId
 	w.Status = workers.NOT_STARTED
 	if w.Concurrency == 0 {
 		w.Concurrency = 1
 	}
-	w.Create()
-	c.JSON(w)
+	err = w.Create()
+	if err != nil {
+		panic(err)
+	}
+	err = c.JSON(w)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func RemoveWorkerFromQueue(c *fiber.Ctx) {
 	q := &workers.Queue{ID: c.Params("id")}
 	var qr QueueRequest
-	c.BodyParser(&qr)
+	err := c.BodyParser(&qr)
+	if err != nil {
+		panic(err)
+	}
 	q.RemoveWorkersByAddress(qr.Addr)
-	c.JSON(q)
+	err = c.JSON(q)
 }
 
 func TuneWorkerOnQueue(c *fiber.Ctx) {
 	q := &workers.Queue{ID: c.Params("id")}
 	var qr QueueRequest
-	c.BodyParser(&qr)
-	q.Tune(qr.Concurrency)
+	err := c.BodyParser(&qr)
+	if err != nil {
+		panic(err)
+	}
+	if qr.WorkerID != "" {
+		err = q.TuneByWorkerId(qr.WorkerID, qr.Concurrency)
+		if err != nil {
+			panic(err)
+		}
+	} else {
+		err = q.Tune(qr.Concurrency)
+		if err != nil {
+			panic(err)
+		}
+	}
 }
 
 func TuneWorkerOnQueueByWorkerId(c *fiber.Ctx) {
 	q := &workers.Queue{ID: c.Params("id")}
 	var qr QueueRequest
-	c.BodyParser(&qr)
-	q.TuneByWorkerId(qr.WorkerID, qr.Concurrency)
+	err := c.BodyParser(&qr)
+	if err != nil {
+		panic(err)
+	}
+	err = q.TuneByWorkerId(qr.WorkerID, qr.Concurrency)
+	if err != nil {
+		panic(err)
+	}
 }
